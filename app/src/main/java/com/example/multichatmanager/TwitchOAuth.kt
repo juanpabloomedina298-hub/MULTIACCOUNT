@@ -15,7 +15,7 @@ class TwitchOAuth(private val context: Context, private val store: SecureAccount
         require(clientId.isNotBlank()) { "Configura TWITCH_CLIENT_ID en gradle.properties o como variable de entorno." }
         Thread {
             try {
-                val body = "client_id=${enc(clientId)}&scopes=${enc("user:read:email")}" 
+                val body = "client_id=${enc(clientId)}&scopes=${enc("user:read:email user:write:chat")}" 
                 val response = post("https://id.twitch.tv/oauth2/device", body)
                 val deviceCode = response.getString("device_code")
                 val userCode = response.getString("user_code")
@@ -34,7 +34,7 @@ class TwitchOAuth(private val context: Context, private val store: SecureAccount
                     val tokenResult = runCatching {
                         post(
                             "https://id.twitch.tv/oauth2/token",
-                            "client_id=${enc(clientId)}&scopes=${enc("user:read:email")}&device_code=${enc(deviceCode)}&grant_type=${enc("urn:ietf:params:oauth:grant-type:device_code")}"
+                            "client_id=${enc(clientId)}&scopes=${enc("user:read:email user:write:chat")}&device_code=${enc(deviceCode)}&grant_type=${enc("urn:ietf:params:oauth:grant-type:device_code")}"
                         )
                     }
                     if (tokenResult.isSuccess) {

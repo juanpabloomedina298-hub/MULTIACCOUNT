@@ -114,7 +114,8 @@ class MainActivity : ComponentActivity() {
                     Scope("openid"),
                     Scope("email"),
                     Scope("profile"),
-                    Scope("https://www.googleapis.com/auth/youtube.readonly")
+                    Scope("https://www.googleapis.com/auth/youtube.readonly"),
+                    Scope("https://www.googleapis.com/auth/youtube.force-ssl")
                 )
             )
             .build()
@@ -175,7 +176,7 @@ class MainActivity : ComponentActivity() {
         @Suppress("DEPRECATION")
         val email = runCatching { result.toGoogleSignInAccount()?.email }.getOrNull()
             ?.takeIf { it.isNotBlank() }
-        val expiresIn = 3600L
+        val expiresIn = 3600L // AuthorizationResult no expone la expiración; los tokens de Google duran ~1 hora
         val label = email ?: "YouTube · cuenta $accountId"
         try {
             secureStore.save(
@@ -241,6 +242,8 @@ fun MultiAccountApp(
     var browserUrl by remember { mutableStateOf("https://www.youtube.com") }
     var browserStatus by remember { mutableStateOf("") }
     var authNotice by remember { mutableStateOf("") }
+    val sender = remember { SenderState(context) }
+    val scope = rememberCoroutineScope()
     var tokenTarget by remember { mutableStateOf<Account?>(null) }
     var tokenBusy by remember { mutableStateOf(false) }
     var tokenError by remember { mutableStateOf<String?>(null) }
@@ -286,12 +289,13 @@ fun MultiAccountApp(
     Scaffold(containerColor = Bg, bottomBar = {
         NavigationBar(containerColor = Panel) {
             NavigationBarItem(selected = page == "accounts" || page == "browser", onClick = { page = "accounts" }, icon = { Icon(Icons.Default.People, null) }, label = { Text("Cuentas") })
+            NavigationBarItem(selected = page == "send", onClick = { page = "send" }, icon = { Icon(Icons.Default.PlayArrow, null) }, label = { Text("Enviar") })
             NavigationBarItem(selected = page == "queue", onClick = { page = "queue" }, icon = { Icon(Icons.Default.Send, null) }, label = { Text("Cola (${queue.size})") })
         }
     }) { pad ->
         Column(Modifier.fillMaxSize().padding(pad).padding(16.dp)) {
             Text("MULTIACCOUNT", color = Purple, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            Text(when (page) { "browser" -> selected.name; "queue" -> "Mensajes en cola"; else -> "Panel de cuentas" }, color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.Bold)
+            Text(when (page) { "browser" -> selected.name; "queue" -> "Mensajes en cola"; "send" -> "Envío en cadena"; else -> "Panel de cuentas" }, color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(12.dp))
             when (page) {
                 "accounts" -> {
@@ -359,8 +363,14 @@ fun MultiAccountApp(
                     }
                     OutlinedButton(onClick = { page = "accounts" }, modifier = Modifier.fillMaxWidth()) { Text("Volver a todas las cuentas") }
                 }
+                "send" -> SendScreen(
+                    state = sender,
+                    accounts = accounts,
+                    authStates = authStates,
+                    onStart = { list -> sender.start(scope, store, list) }
+                )
                 else -> {
-                    Text("Prepara mensajes y guárdalos en una cola local. La app no los publica automáticamente: tú confirmas cada envío en YouTube o Twitch.", color = Muted, fontSize = 12.sp)
+                    Text("Prepara mensajes y guárdalos en una cola local. Toca Usar para cargar uno en la pestaña Enviar y mandarlo desde tus cuentas.", color = Muted, fontSize = 12.sp)
                     OutlinedTextField(value = message, onValueChange = { message = it }, modifier = Modifier.fillMaxWidth(), minLines = 3, label = { Text("Escribe el mensaje") })
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = { if (message.isNotBlank()) { persistQueue(queue + QueuedMessage(System.currentTimeMillis(), "Ambas", message.trim())); message = "" } }, modifier = Modifier.weight(1f)) { Text("Agregar a cola") }
@@ -374,6 +384,7 @@ fun MultiAccountApp(
                                     Text(item.text, color = Color.White)
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         OutlinedButton(onClick = { val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cm.setPrimaryClip(android.content.ClipData.newPlainText("Mensaje", item.text)); browserStatus = "Mensaje copiado" }, modifier = Modifier.weight(1f)) { Text("Copiar") }
+                                        OutlinedButton(onClick = { sender.message = item.text; page = "send" }) { Text("Usar") }
                                         OutlinedButton(onClick = { persistQueue(queue.filterNot { it.id == item.id }) }) { Text("Eliminar") }
                                     }
                                 }

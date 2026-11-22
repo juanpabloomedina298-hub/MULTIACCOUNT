@@ -13,8 +13,8 @@ android {
         applicationId = "com.example.multichatmanager"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.3"
+        versionCode = 4
+        versionName = "1.4"
         buildConfigField("String", "TWITCH_CLIENT_ID", "\"$twitchClientId\"")
     }
 
@@ -40,5 +40,6 @@ dependencies {
     implementation("androidx.browser:browser:1.8.0")
     implementation("com.google.android.gms:play-services-auth:21.3.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

@@ -1,4 +1,4 @@
-# MultiAccount / MultiChat Manager — versión 1.3
+# MultiAccount / MultiChat Manager — versión 1.4
 
 Proyecto Android original actualizado. Se conserva Jetpack Compose, la pantalla de 30 espacios, WebView, filtros y la cola local de mensajes.
 
@@ -13,6 +13,28 @@ Proyecto Android original actualizado. Se conserva Jetpack Compose, la pantalla 
 - Se corrigió `SecureAccountStore.get`: tenía un `return` dentro de una función con cuerpo de expresión, que impedía compilar Kotlin.
 - La petición Twitch ahora manda `multipart/form-data`, como en los ejemplos oficiales del Device Code Grant, e incluye `scopes` también al canjear el código.
 - Se aumentó `versionCode` a 2 y `versionName` a 1.2.
+
+## Novedad 1.4: envío en cadena (pestaña «Enviar»)
+
+Envía el mismo mensaje desde varias cuentas, una tras otra, con una pausa que tú eliges:
+
+1. Abre la pestaña **Enviar**.
+2. Escribe el **canal de Twitch** (solo el usuario, también acepta `@usuario` o el enlace) y/o el **directo de YouTube** (enlace o ID del video en vivo).
+3. Escribe el mensaje (o usa **Usar** en un mensaje de la Cola).
+4. Elige la **pausa entre cuentas** en segundos (mínimo 1 s; admite decimales como 1.5).
+5. Marca qué cuentas conectadas participan (por defecto, todas las que tengan destino).
+6. Pulsa **Enviar ciclo**, confirma y listo: la cuenta 1 envía, espera la pausa, envía la 2, y así hasta terminar. **Detener** corta el ciclo antes del siguiente envío.
+
+Se envía en orden de espacio (YouTube 1–15 y luego Twitch 16–30). Cada cuenta queda registrada con ✓ o ✗ y el motivo del error.
+
+Requisitos y límites:
+
+- **Twitch** usa `POST /helix/chat/messages` y necesita el permiso `user:write:chat`. Las cuentas conectadas con **Auth** desde esta versión ya lo piden; si conectaste antes, vuelve a pulsar **Auth**. Con **Pegar token**, el token debe incluir ese permiso. Máximo 500 caracteres.
+- **YouTube** usa `liveChatMessages.insert` y necesita el permiso `youtube.force-ssl`. Vuelve a pulsar **Auth** en las cuentas conectadas antes y añade ese alcance en la pantalla de consentimiento de Google. Máximo 200 caracteres. El directo debe estar en vivo y con el chat activo.
+- **Cuota de YouTube:** cada mensaje cuesta 20 unidades de la cuota diaria del proyecto (10 000 por defecto), es decir, unos 500 mensajes al día en total.
+- Si el canal o el directo no existe, o se agota la cuota, esa plataforma se omite sin esperar el delay y el ciclo sigue con la otra.
+- El ciclo corre mientras la app esté abierta; si Android la cierra en segundo plano, se interrumpe.
+- Úsalo solo en chats donde esté permitido y con cuentas tuyas. Repetir el mismo mensaje en cadena puede activar filtros anti-spam o bloqueos de las plataformas.
 
 ## Novedad 1.3: conectar pegando un token
 
@@ -56,7 +78,7 @@ La app utiliza `AuthorizationClient` de Google Play Services. El token OAuth es 
    TWITCH_CLIENT_ID=tu_client_id
    ```
 
-El alcance solicitado actualmente es `user:read:email`, utilizado para validar y mostrar el usuario Twitch. Si más adelante se agregan funciones API adicionales, deben solicitarse únicamente los scopes que esas funciones necesiten.
+Los alcances solicitados son `user:read:email` (validar y mostrar el usuario) y `user:write:chat` (enviar mensajes desde la pestaña Enviar). Si más adelante se agregan funciones API adicionales, deben solicitarse únicamente los scopes que esas funciones necesiten.
 
 ## Compilar en GitHub Actions
 
@@ -103,6 +125,8 @@ Verificado en el paquete fuente:
 - `app/src/main/java/com/example/multichatmanager/SecureAccountStore.kt`
 - `app/src/main/java/com/example/multichatmanager/TwitchOAuth.kt`
 - `app/src/main/java/com/example/multichatmanager/TokenConnector.kt`
+- `app/src/main/java/com/example/multichatmanager/ChatSender.kt` (envío y ciclo con pausa)
+- `app/src/main/java/com/example/multichatmanager/SenderState.kt` y `SendScreen.kt` (pestaña Enviar)
 - `app/src/main/AndroidManifest.xml`
 - `app/build.gradle.kts`
 - `.github/workflows/android.yml`
