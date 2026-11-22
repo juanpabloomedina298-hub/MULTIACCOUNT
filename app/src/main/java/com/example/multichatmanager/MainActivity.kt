@@ -175,7 +175,7 @@ class MainActivity : ComponentActivity() {
         @Suppress("DEPRECATION")
         val email = runCatching { result.toGoogleSignInAccount()?.email }.getOrNull()
             ?.takeIf { it.isNotBlank() }
-        val expiresIn = result.tokenResponseParams?.getLong("expires_in", 3600L) ?: 3600L
+        val expiresIn = 3600L
         val label = email ?: "YouTube · cuenta $accountId"
         try {
             secureStore.save(
